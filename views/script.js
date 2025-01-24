@@ -27,6 +27,12 @@ class Workouts {
     this.duration = duration; //in Mins
   }
 
+  _setDescription() {
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${months[this.date.getMonth()]} ${this.date.getDate()}`;
+  }
+
   click() {
     this.clicks++;
     console.log(this.clicks);
@@ -43,6 +49,8 @@ class Running extends Workouts {
   constructor(coords, distance, duration, cadence) {
     super(coords, distance, duration);
     this.cadence = cadence;
+
+    this._setDescription();
 
     this.calcPace();
   }
@@ -64,6 +72,8 @@ class Cycling extends Workouts {
   constructor(coords, distance, duration, elevationGain) {
     super(coords, distance, duration);
     this.elevationGain = elevationGain;
+
+    this._setDescription();
 
     this.calcSpeed();
   }
@@ -90,8 +100,13 @@ class App {
   #workouts = [];
 
   constructor() {
+    // Get user's position
     this._getPosition();
 
+    // Get data from local storage
+    this._getLocalStorage();
+
+    // Attach event handlers
     form.addEventListener("submit", this._newWorkout.bind(this));
 
     // this change event will trigger - Form selection
@@ -138,6 +153,10 @@ class App {
     this.#map.on("click", this._showForm.bind(this));
 
     // ------ Leaflet API code - from Leaflet
+
+    this.#workouts.forEach((work) => {
+      this.renderWorkoutMarker(work);
+    });
   }
 
   _showForm(Levent) {
@@ -233,14 +252,15 @@ class App {
     // Hide the form and Clear inputs
     this.hideForm();
 
-    //
+    //Set local Storage to all Workouts
+    this._setLocalStorage();
   }
 
   renderWorkoutMarker(workout, type) {
     console.log(workout);
 
-    const workoutDate = workout.date.getDate();
-    const workoutMonth = workout.date.getMonth();
+    // const workoutDate = workout.date.getDate();
+    // const workoutMonth = workout.date.getMonth();
 
     // const [lat, lng] = workout.coords;
 
@@ -255,18 +275,18 @@ class App {
           className: `${type}-popup`,
         })
       )
-      .setPopupContent(workout.type === "running" ? `Running on ${months[workoutMonth]} ${workoutDate}` : `Cycling on ${months[workoutMonth]} ${workoutDate}`)
+      .setPopupContent(`${workout.type === "running" ? "🏃‍♂️🏃‍♂️" : "🚴‍♂️🚴‍♂️"} ${workout.description}`)
       .openPopup();
   }
 
   renderWorkoutList(workout) {
     console.log("renderWorkoutList:", workout);
 
-    const workoutDate = workout.date.getDate();
-    const workoutMonth = workout.date.getMonth();
+    // const workoutDate = workout.date.getDate();
+    // const workoutMonth = workout.date.getMonth();
 
     let html = `<li class="workout workout--${workout.type}" data-id="${workout.id}">
-          <h2 class="workout__title">${workout.type} on ${months[workoutMonth]} ${workoutDate}</h2>
+          <h2 class="workout__title">${workout.description}</h2>
           <div class="workout__details">
             <span class="workout__icon">${workout.type === "running" ? "🏃‍♂️" : "🚴‍♂️"}</span>
             <span class="workout__value">${workout.distance}</span>
@@ -338,7 +358,31 @@ class App {
       },
     });
 
-    moveWorkoutId.click();
+    // moveWorkoutId.click();
+  }
+
+  _setLocalStorage() {
+    localStorage.setItem("workouts", JSON.stringify(this.#workouts));
+  }
+
+  _getLocalStorage() {
+    const data = JSON.parse(localStorage.getItem("workouts"));
+    console.log(data);
+
+    if (!data) return;
+
+    this.#workouts = data;
+
+    this.#workouts.forEach((work) => {
+      console.log(this);
+
+      this.renderWorkoutList(work);
+    });
+  }
+
+  reset() {
+    localStorage.removeItem("workouts");
+    location.reload();
   }
 }
 
